@@ -32,7 +32,7 @@ def ask_admin(message):
 def question_to_admins(message):
     try:
         bot.forward_message(receiver, message.chat.id, message.message_id)
-        bot.send_message(message.chat.id, text=text_message.question_to_admin)
+        bot.send_message(message.chat.id, text=text_message.question_to_admin, parse_mode='HTML')
     except KeyError:
         bot.send_message(message.chat.id, text=text_message.not_text)
         ask_admin(message)
