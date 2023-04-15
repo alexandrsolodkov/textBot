@@ -2,6 +2,7 @@ import telebot
 from telebot import types
 import cred
 import text_message
+from datetime import datetime
 
 
 API_TOKEN = cred.token
@@ -9,8 +10,19 @@ bot = telebot.TeleBot(API_TOKEN)
 receiver = cred.tg_id
 
 
+@bot.message_handler(commands=['start'])
+def start_stat(message):
+    with open(file='statistics/activation_stat.txt', mode='a') as pc:
+        full_name = message.from_user.full_name
+        user_name = message.from_user.username
+        user_id = message.from_user.id
+        usage_time = datetime.utcfromtimestamp(message.date).strftime('%Y-%m-%d %H:%M:%S')
+        pc.write(f'{user_id}|{full_name}|{user_name}|{usage_time}' + '\n')
+    welcome_text(message)
+
+
 # main menu
-@bot.message_handler(commands=['menu', 'start'])
+@bot.message_handler(commands=['menu'])
 def welcome_text(message):
     keyboard = types.InlineKeyboardMarkup()
     buy_advertising = types.InlineKeyboardButton(text=text_message.buy_advertising, callback_data='advertising')
@@ -18,11 +30,6 @@ def welcome_text(message):
     offer_news = types.InlineKeyboardButton(text=text_message.offer_news, callback_data='offer')
     keyboard.add(buy_advertising, ask_button, offer_news, row_width=1)
     bot.send_message(message.chat.id, text=text_message.welcome_text, reply_markup=keyboard)
-
-
-@bot.message_handler(commands=['help'])
-def help_message(message):
-    bot.send_message(message.chat.id, text=text_message.help_message)
 
 
 def ask_admin(message):
