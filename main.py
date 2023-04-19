@@ -64,9 +64,7 @@ def callback_check(callback):
             callback_data='free_date',
             url='https://www.notion.so/fbeb2e0daca34e019021632062bad1d1'
         )
-        buy = types.InlineKeyboardButton(text=text_message.buy_bt, callback_data='buy')
-        back_bt = types.InlineKeyboardButton(text=text_message.back_bt, callback_data='back')
-        keyboard.add(free_date, buy, back_bt, row_width=2)
+        keyboard.add(free_date, row_width=2)
         bot.send_message(
             callback.message.chat.id,
             text=text_message.advertising,
