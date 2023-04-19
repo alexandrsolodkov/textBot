@@ -8,6 +8,7 @@ from datetime import datetime
 API_TOKEN = cred.token
 bot = telebot.TeleBot(API_TOKEN)
 receiver = cred.tg_id
+press_button = False
 
 
 @bot.message_handler(commands=['start'])
@@ -26,65 +27,89 @@ def start_stat(message):
 def welcome_text(message):
     keyboard = types.InlineKeyboardMarkup()
     buy_advertising = types.InlineKeyboardButton(text=text_message.buy_advertising, callback_data='advertising')
+    offer_vacancy = types.InlineKeyboardButton(text=text_message.offer_vacancy, callback_data='vacancy')
     ask_button = types.InlineKeyboardButton(text=text_message.ask_button, callback_data='ask')
     offer_news = types.InlineKeyboardButton(text=text_message.offer_news, callback_data='offer')
-    keyboard.add(buy_advertising, ask_button, offer_news, row_width=1)
+    keyboard.add(buy_advertising, offer_vacancy, ask_button, offer_news, row_width=1)
     bot.send_message(message.chat.id, text=text_message.welcome_text, reply_markup=keyboard)
 
 
-def ask_admin(message):
-    bot.register_next_step_handler(message, question_to_admins)
+def offer_vacancy_act(message):
+    global press_button
+    try:
+        bot.forward_message(receiver, message.chat.id, message.message_id)
+        bot.send_message(message.chat.id, text=text_message.vacancy_answer, parse_mode='HTML')
+        press_button = False
+    except KeyError:
+        bot.send_message(message.chat.id, text=text_message.not_text)
 
 
 def question_to_admins(message):
+    global press_button
     try:
         bot.forward_message(receiver, message.chat.id, message.message_id)
         bot.send_message(message.chat.id, text=text_message.question_to_admin, parse_mode='HTML')
+        press_button = False
     except KeyError:
         bot.send_message(message.chat.id, text=text_message.not_text)
-        ask_admin(message)
 
 
 def take_news(message):
+    global press_button
     try:
         bot.forward_message(receiver, message.chat.id, message.message_id)
         bot.send_message(message.chat.id, text=text_message.thnx_message)
+        press_button = False
     except KeyError:
         bot.send_message(message.chat.id, text=text_message.not_news)
-        ask_admin(message)
 
 
-@bot.callback_query_handler(func=lambda callback: callback.data)
-def callback_check(callback):
+@bot.callback_query_handler(func=lambda callback: callback.data == 'advertising')
+def callback_advertising(callback):
+    bot.send_message(
+        callback.message.chat.id,
+        text=text_message.advertising,
+        parse_mode='HTML',
+        disable_web_page_preview=True
+    )
 
-    if callback.data == 'advertising':
-        keyboard = types.InlineKeyboardMarkup()
-        free_date = types.InlineKeyboardButton(
-            text=text_message.free_date,
-            callback_data='free_date',
-            url='https://www.notion.so/fbeb2e0daca34e019021632062bad1d1'
-        )
-        keyboard.add(free_date, row_width=2)
+
+@bot.callback_query_handler(func=lambda callback: callback.data == 'vacancy')
+def callback_vacancy(callback):
+    global press_button
+    if not press_button:
+        press_button = True
         bot.send_message(
             callback.message.chat.id,
-            text=text_message.advertising,
+            text=text_message.vacancy_description,
             parse_mode='HTML',
-            reply_markup=keyboard
+            disable_web_page_preview=True
         )
+        bot.register_next_step_handler(callback.message, offer_vacancy_act)
+    else:
+        return
 
-    elif callback.data == 'ask':
+
+@bot.callback_query_handler(func=lambda callback: callback.data == 'ask')
+def callback_ask(callback):
+    global press_button
+    if not press_button:
+        press_button = True
         bot.send_message(callback.message.chat.id, text=text_message.ask)
-        ask_admin(callback.message)
+        bot.register_next_step_handler(callback.message, question_to_admins)
+    else:
+        return
 
-    elif callback.data == 'buy':
-        bot.send_message(callback.message.chat.id, text=text_message.buy_text)
 
-    elif callback.data == 'offer':
+@bot.callback_query_handler(func=lambda callback: callback.data == 'offer')
+def callback_offer(callback):
+    global press_button
+    if not press_button:
+        press_button = True
         bot.send_message(callback.message.chat.id, text=text_message.offer_text)
         bot.register_next_step_handler(callback.message, take_news)
-
-    elif callback.data == 'back':
-        welcome_text(callback.message)
+    else:
+        return
 
 
 if __name__ == '__main__':
